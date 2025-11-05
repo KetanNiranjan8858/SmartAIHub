@@ -1,0 +1,35 @@
+.header{
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background-color: #000000;
+    color: white;
+    border-radius: 20px;
+    justify-content: space-between;
+}
+
+img{
+    height: 100px;
+
+}
+
+.feature{
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 40vw;
+    margin-inline: 5vw;
+}
+
+.chatAnalysis, .spamDetection{
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 20px;
+}
+
+.chatAnalysis:hover, .spamDetection:hover{
+    background-color: rgb(45, 45, 45);
+    transition: 0.1s;
+    margin-bottom: 5px;
+    text-decoration: underline;
+}

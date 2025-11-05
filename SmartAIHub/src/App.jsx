@@ -1,14 +1,21 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
-import './App.css'
 import Header from './Header'
+import background from './assets/background.png';
+
 
 function App() {
   return (
-    <>
-      <Header/>
-    </>
+    <div className="App" style={{
+      backgroundImage: `url(${background})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      minHeight: '100vh',
+      margin: 0,
+      padding: 0
+    }}>
+      <Header />
+    </div>
   )
 }
 
