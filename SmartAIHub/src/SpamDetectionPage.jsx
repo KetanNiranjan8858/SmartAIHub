@@ -1,10 +1,12 @@
 // src/components/SpamDetectionPage.jsx
 import React, { useState } from 'react';
-// Note: In a real app, the `checkSpam` function would call your ML backend API.
+
+// Define the backend API URL where Flask is running
+const API_URL = 'http://localhost:5000/api/check_spam'; 
 
 function SpamDetectionPage() {
   const [text, setText] = useState('');
-  const [prediction, setPrediction] = useState(null); // null, 'spam', or 'ham'
+  const [prediction, setPrediction] = useState(null); // null, 'spam', 'ham', or 'error'
   const [loading, setLoading] = useState(false);
 
   const checkSpam = async () => {
@@ -16,23 +18,37 @@ function SpamDetectionPage() {
     setLoading(true);
     setPrediction(null);
 
-    // --- Mock Backend Logic (Replace with real API call later) ---
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-    
-    // Simple mock logic: text with "free", "winner", or "buy now" is spam
-    const lowerText = text.toLowerCase();
-    let result = 'ham'; // Default to not spam
-    
-    if (lowerText.includes('free') || lowerText.includes('winner') || lowerText.includes('buy now')) {
-        result = 'spam';
-    }
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Send the user's text data to the Flask endpoint
+        body: JSON.stringify({ text: text }),
+      });
 
-    setPrediction(result);
-    setLoading(false);
-    // --- End Mock Backend Logic ---
+      const data = await response.json();
+
+      if (response.ok) {
+        // Flask returns 'spam' or 'ham' in the 'classification' field
+        setPrediction(data.classification); 
+      } else {
+        // Handle HTTP error status codes from the server (e.g., 400, 500)
+        setPrediction('error'); 
+        console.error("Server returned an error:", data.error || response.statusText);
+      }
+
+    } catch (error) {
+      // Handle network issues (e.g., Flask server is not running)
+      setPrediction('network_error'); 
+      console.error("Network or Fetch Error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Helper to determine result display
+  // Helper to determine result display based on state
   const getResultDisplay = () => {
     if (loading) {
       return <p className="prediction-loading">Analyzing message...</p>;
@@ -52,6 +68,22 @@ function SpamDetectionPage() {
           ✅ **Result: HAM (Not Spam)** <p>The message appears safe and legitimate.</p>
         </div>
       );
+    }
+
+    if (prediction === 'error') {
+        return (
+            <div className="prediction-result spam">
+                ❌ **SERVER ERROR** <p>The backend service encountered an issue processing the request. Check the console for details.</p>
+            </div>
+        );
+    }
+
+    if (prediction === 'network_error') {
+        return (
+            <div className="prediction-result spam">
+                ⚠️ **CONNECTION FAILED** <p>Could not connect to the SmartAIHub backend (http://localhost:5000). Ensure your Flask server is running.</p>
+            </div>
+        );
     }
     
     return <p className="prediction-placeholder">Enter your message or email content above and click 'Analyze' to begin.</p>;
@@ -76,7 +108,7 @@ function SpamDetectionPage() {
         </div>
 
         <button 
-          className="analyze-button" 
+          className="analyze-button spam-analyze" 
           onClick={checkSpam} 
           disabled={loading || text.trim() === ''}
         >
