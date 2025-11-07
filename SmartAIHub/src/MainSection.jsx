@@ -11,23 +11,25 @@ function MainSection() {
         <div className="hero-content">
           <h2>Your Unified Platform for Practical Machine Learning</h2>
           <p>
-            **SmartAIHub** brings together essential AI tools for **security**, **insight**, 
-            and **recommendations**, all in one intuitive interface.
+            **SmartAIHub** brings together **four essential AI tools** for security, insight, 
+            recommendations, and **financial decision-making**, all in one intuitive interface.
           </p>
           <a href="#features" className="cta-button">Explore Features</a>
         </div>
       </section>
 
-      {/* 🧩 Features Section: The Three Pillars */}
+      {/* 🧩 Features Section: The Four Pillars */}
       <section id="features" className="features-section">
         <h3>Core AI Capabilities</h3>
-        <div className="feature-cards">
+        
+        {/* NOTE: We change the layout structure to accommodate 4 cards elegantly */}
+        <div className="feature-cards four-features"> 
           
           {/* Card 1: Spam Detection (unchanged) */}
           <Link to="/spam-detection" className="card-link">
             <div className="card feature-card-spam">
               <h4>🛡️ Email & Message Spam Detection</h4>
-              <p>Leverage Natural Language Processing (NLP) to accurately identify and filter unwanted spam, enhancing your digital security and productivity.</p>
+              <p>Leverage NLP to accurately identify and filter unwanted spam, enhancing your digital security and productivity.</p>
               <button className="card-button">Analyze Text</button>
             </div>
           </Link>
@@ -36,17 +38,26 @@ function MainSection() {
           <Link to="/whatsapp-analysis" className="card-link">
             <div className="card feature-card-whatsapp">
               <h4>💬 WhatsApp Chat Analysis</h4>
-              <p>Gain valuable insights into your communication patterns, message frequency, and top contacts with interactive data visualizations and metrics.</p>
+              <p>Gain valuable insights into your communication patterns, message frequency, and top contacts with data visualizations.</p>
               <button className="card-button">Analyze Chat</button>
             </div>
           </Link>
           
-          {/* Card 3: MOVIE RECOMMENDATION SYSTEM (NEW FEATURE) */}
+          {/* Card 3: Movie Recommendation System (unchanged) */}
           <Link to="/movie-recommendation" className="card-link">
             <div className="card feature-card-movie">
               <h4>🎬 Movie Recommendation System</h4>
               <p>Receive personalized movie suggestions based on titles, genres, and ratings. Discover new films tailored to your preferences.</p>
               <button className="card-button">Get Recommendations</button>
+            </div>
+          </Link>
+          
+          {/* Card 4: HOUSE PRICE PREDICTION (RE-ADDED FEATURE) */}
+          <Link to="/house-price-prediction" className="card-link">
+            <div className="card feature-card-house">
+              <h4>🏠 House Price Prediction</h4>
+              <p>Estimate the fair market value of residential property based on powerful regression models and input features.</p>
+              <button className="card-button">Estimate Price</button>
             </div>
           </Link>
 

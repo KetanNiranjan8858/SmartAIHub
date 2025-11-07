@@ -1,33 +1,86 @@
 // src/components/MovieRecommendationPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
-// Define the backend API URL
-const API_URL = 'http://localhost:5000/api/recommend_movies'; 
+const RECOMMEND_API_URL = 'http://localhost:5000/api/recommend_movies'; 
+const SEARCH_API_URL = 'http://localhost:5000/api/search_movies'; 
 
 function MovieRecommendationPage() {
   const [movieTitle, setMovieTitle] = useState('');
-  const [recommendations, setRecommendations] = useState(null); // null, list of movie objects, or []
+  const [suggestions, setSuggestions] = useState([]); 
+  const [recommendations, setRecommendations] = useState(null); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Debounce utility function to limit API calls during typing
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+  };
+
+  // Function to fetch suggestions from Flask
+  const fetchSuggestions = async (term) => {
+    if (term.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(SEARCH_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partial_title: term }),
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSuggestions(data.suggestions);
+      } else {
+        setSuggestions([]);
+      }
+    } catch (e) {
+      // Typically silent errors here unless the API is down
+      setSuggestions([]);
+    }
+  };
+
+  // Debounced version of the fetch function, runs 300ms after user stops typing
+  const debouncedFetchSuggestions = useCallback(debounce(fetchSuggestions, 300), []);
+
+
+  const handleInputChange = (e) => {
+    const term = e.target.value;
+    setMovieTitle(term);
+    
+    setRecommendations(null);
+    setError(null);
+
+    // Trigger debounced suggestion fetch
+    debouncedFetchSuggestions(term);
+  };
+
+  const handleSelectSuggestion = (title) => {
+      // Set the full title (converted to display case) and clear the suggestions
+      setMovieTitle(title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')); 
+      setSuggestions([]); 
+  };
 
   const getRecommendations = async () => {
     if (movieTitle.trim() === '') {
       setRecommendations(null);
-      setError(null);
       return;
     }
-
     setLoading(true);
     setRecommendations(null);
     setError(null);
+    setSuggestions([]); 
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(RECOMMEND_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Send the user's movie title to Flask
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: movieTitle }),
       });
 
@@ -36,16 +89,12 @@ function MovieRecommendationPage() {
       if (response.ok && data.success) {
         setRecommendations(data.recommendations); 
       } else {
-        // Handle API error messages from Flask
         setError(data.error || data.message || 'Could not find recommendations.');
         setRecommendations([]);
       }
-
     } catch (err) {
-      // Handle network failure or CORS issues
-      setError("Network Error: Could not reach the recommendation engine (check Flask server and CORS).");
+      setError("Network Error: Could not reach the recommendation engine.");
       setRecommendations([]);
-      console.error("Fetch Error:", err);
     } finally {
       setLoading(false);
     }
@@ -68,7 +117,6 @@ function MovieRecommendationPage() {
             {recommendations.map((movie, index) => (
               <li key={index}>
                 <strong>{movie.title}</strong> 
-                {/* Display score if available, otherwise just title */}
                 {movie.score ? <span style={{marginLeft: '10px'}}>(Similarity: {movie.score})</span> : ''}
               </li>
             ))}
@@ -78,12 +126,12 @@ function MovieRecommendationPage() {
     }
     
     if (recommendations && recommendations.length === 0) {
-        // Error state handled above, this is the "not found" state
         return <p className="recommendation-placeholder">No recommendations found. Try checking your spelling or a more popular title.</p>;
     }
     
     return <p className="recommendation-placeholder">Enter a movie title to get personalized recommendations.</p>;
   };
+  
 
   return (
     <div className="movie-page-container">
@@ -97,10 +145,21 @@ function MovieRecommendationPage() {
             id="movie-input"
             type="text"
             value={movieTitle}
-            onChange={(e) => setMovieTitle(e.target.value)}
+            onChange={handleInputChange} 
             placeholder="e.g., The Dark Knight, Inception"
             disabled={loading}
           />
+          
+          {/* Suggestions Dropdown */}
+          {suggestions.length > 0 && (
+            <ul className="suggestions-list">
+              {suggestions.map((title, index) => (
+                <li key={index} onClick={() => handleSelectSuggestion(title)}>
+                  {title}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <button 

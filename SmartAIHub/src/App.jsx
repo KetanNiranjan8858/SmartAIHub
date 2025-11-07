@@ -6,13 +6,13 @@ import MainSection from './MainSection';
 import Footer from './Footer';
 import SpamDetectionPage from './SpamDetectionPage'; 
 import WhatsAppChatAnalysisPage from './WhatsAppChatAnalysisPage'; 
-import MovieRecommendationPage from './MovieRecommendationPage'; // NEW FEATURE PAGE
+import MovieRecommendationPage from './MovieRecommendationPage';
+import HousePricePredictionPage from './HousePricePredictionPage'; // <--- NEW IMPORT
 import './App.css'; 
 
 function App() {
   return (
     <Router>
-      {/* .App provides the global background and flex layout */}
       <div className="App">
         <Header />
         
@@ -28,6 +28,9 @@ function App() {
           
           {/* Feature 3: Movie Recommendation System */}
           <Route path="/movie-recommendation" element={<MovieRecommendationPage />} /> 
+
+          {/* Feature 4: House Price Prediction */}
+          <Route path="/house-price-prediction" element={<HousePricePredictionPage />} /> {/* <--- NEW ROUTE */}
         </Routes>
         
         <Footer />

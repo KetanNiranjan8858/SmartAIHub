@@ -1,6 +1,9 @@
 // src/components/HousePricePredictionPage.jsx
 import React, { useState } from 'react';
 
+// Define the backend API URL (Need to implement this endpoint in Flask!)
+const API_URL = 'http://localhost:5000/api/predict_price'; 
+
 function HousePricePredictionPage() {
   const [formData, setFormData] = useState({
     sqft: 1500,
@@ -10,11 +13,13 @@ function HousePricePredictionPage() {
   });
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: name === 'sqft' || name === 'bedrooms' || name === 'bathrooms' ? parseFloat(value) : value }));
     setPrediction(null); // Reset prediction on input change
+    setError(null);
   };
 
   const predictPrice = async (e) => {
@@ -22,34 +27,44 @@ function HousePricePredictionPage() {
     
     setLoading(true);
     setPrediction(null);
+    setError(null);
 
-    // --- Mock Backend Logic (Replace with ML API call) ---
-    await new Promise(resolve => setTimeout(resolve, 1800)); // Simulate API delay
-    
-    // Mock calculation based on size: Base price + feature adjustment
-    const basePrice = 150000;
-    const sqftFactor = formData.sqft * 120; // $120/sqft
-    const bedFactor = formData.bedrooms * 15000;
-    const locationAdjustment = formData.location === 'Suburb A' ? 50000 : 20000;
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+        });
 
-    const predicted = basePrice + sqftFactor + bedFactor + locationAdjustment;
-    // Format to nearest thousand for a clean prediction
-    const formattedPrediction = Math.round(predicted / 1000) * 1000;
-    
-    setPrediction(formattedPrediction.toLocaleString('en-US'));
-    setLoading(false);
-    // --- End Mock Backend Logic ---
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            const formattedPrice = parseFloat(data.prediction).toLocaleString('en-US');
+            setPrediction(formattedPrice);
+        } else {
+            setError(data.error || "Prediction failed. Check backend console for details.");
+            setPrediction(null);
+        }
+    } catch (err) {
+        setError("Network Error: Could not reach the price prediction server.");
+        console.error("Fetch Error:", err);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const getResultDisplay = () => {
     if (loading) {
       return <p className="prediction-loading">Calculating Market Value...</p>;
     }
+    if (error) {
+        return <div className="prediction-result spam">❌ **Error:** <p>{error}</p></div>;
+    }
     if (prediction) {
       return (
         <div className="prediction-result house-prediction">
           💰 **Predicted Value:** ${prediction}
-          <p>Based on the data entered, this is the estimated market price.</p>
+          <p>This is the estimated market price based on the inputs.</p>
         </div>
       );
     }
@@ -90,7 +105,7 @@ function HousePricePredictionPage() {
           
           <button 
             type="submit" 
-            className="predict-button" 
+            className="analyze-button predict-button" 
             disabled={loading}
           >
             {loading ? 'Predicting...' : 'Predict Price'}
