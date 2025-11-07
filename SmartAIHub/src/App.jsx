@@ -1,25 +1,35 @@
-// src/App.jsx (Final Version Check)
+// src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './Header';
 import MainSection from './MainSection'; 
-import SpamDetectionPage from './SpamDetectionPage'; 
-import WhatsAppChatAnalysisPage from './WhatsAppChatAnalysisPage'; // NEW
-import HousePricePredictionPage from './HousePricePredictionPage'; // NEW
 import Footer from './Footer';
+import SpamDetectionPage from './SpamDetectionPage'; 
+import WhatsAppChatAnalysisPage from './WhatsAppChatAnalysisPage'; 
+import MovieRecommendationPage from './MovieRecommendationPage'; // NEW FEATURE PAGE
 import './App.css'; 
 
 function App() {
   return (
     <Router>
+      {/* .App provides the global background and flex layout */}
       <div className="App">
         <Header />
+        
         <Routes>
+          {/* Landing Page */}
           <Route path="/" element={<MainSection />} />
+          
+          {/* Feature 1: Spam Detection */}
           <Route path="/spam-detection" element={<SpamDetectionPage />} />
-          <Route path="/whatsapp-analysis" element={<WhatsAppChatAnalysisPage />} /> {/* NEW ROUTE */}
-          <Route path="/house-price-prediction" element={<HousePricePredictionPage />} /> {/* NEW ROUTE */}
+          
+          {/* Feature 2: WhatsApp Chat Analysis */}
+          <Route path="/whatsapp-analysis" element={<WhatsAppChatAnalysisPage />} /> 
+          
+          {/* Feature 3: Movie Recommendation System */}
+          <Route path="/movie-recommendation" element={<MovieRecommendationPage />} /> 
         </Routes>
+        
         <Footer />
       </div>
     </Router>
