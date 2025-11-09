@@ -137,3 +137,140 @@ h1, h2, h3, h4 {
     .input-form { grid-template-columns: 1fr; }
     .input-form > button { width: 100%; }
 }
+
+
+/* src/App.css */
+
+/* ... (existing styles) ... */
+
+/* --- 4. Feature Specific Styles --- */
+
+/* WhatsApp Analysis */
+.analysis-output {
+    text-align: left;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.analysis-output h3, .analysis-output h4 {
+    color: var(--color-primary);
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    background-color: #EAF7FF; /* Light blue */
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #D1E8F6;
+}
+
+.stat-box .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-secondary);
+    margin-bottom: 5px;
+}
+
+.stat-box .stat-label {
+    font-size: 14px;
+    color: var(--color-light-text);
+}
+
+.message-distribution-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 30px;
+}
+
+.message-distribution-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #f0f0f0;
+    font-size: 15px;
+    color: var(--color-text);
+}
+
+.message-distribution-list li span:first-child {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+.message-distribution-list li span:last-child {
+    font-weight: 500;
+    color: var(--color-secondary);
+}
+
+.emoji-section {
+    margin-bottom: 30px;
+}
+
+.emoji-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 15px;
+    background-color: #f9fbfd;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.emoji-item {
+    font-size: 28px; /* Larger emoji size */
+    background-color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.emoji-count {
+    font-size: 14px;
+    color: var(--color-light-text);
+    font-weight: 500;
+}
+
+.visuals-section {
+    margin-top: 40px;
+}
+
+.visuals-note {
+    text-align: center;
+    font-style: italic;
+    color: var(--color-light-text);
+    padding: 20px;
+    background-color: #f0f8ff;
+    border-radius: 8px;
+    border: 1px dashed #a0d4ff;
+}
+
+.chart-container {
+    margin-bottom: 30px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.chart-container p {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--color-primary);
+}
+
+
+/* ... (other existing sections) ... */

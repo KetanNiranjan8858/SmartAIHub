@@ -3,9 +3,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib 
 import os 
-import re # NEW: Needed for WhatsApp regex
-from collections import Counter # NEW: Needed for WhatsApp analysis
-from datetime import datetime # NEW: Needed for WhatsApp analysis
+import re 
+from collections import Counter 
+from datetime import datetime 
 
 # Import custom logic (must exist in src/movie_recommendation_logic.py)
 try:
@@ -50,19 +50,33 @@ except Exception as e:
 
 # --- WHATSAPP CHAT ANALYSIS LOGIC (Integrated) ---
 
+# Original regex for message parsing
 WHATSAPP_REGEX = re.compile(
     r'^(\d{2}/\d{2}/\d{4}),\s(\d{1,2}:\d{2}\s(?:am|pm))\s-\s([^:]+?):\s(.*)$',
     re.MULTILINE
 )
 
+# NEW: Regex for emojis (covers most common Unicode emoji blocks)
+EMOJI_REGEX = re.compile(
+    r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]+'
+)
+
+# NEW: Regex for URLs
+URL_REGEX = re.compile(
+    r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+)
+
 def analyze_chat_data(file_content):
-    """Parses raw chat file content and generates analytical metrics."""
+    """Parses raw chat file content and generates analytical metrics, including emojis, links, and time distribution."""
     
     parsed_messages = []
     message_counts = Counter()
     total_chars = 0
+    total_links = 0 # NEW
+    emoji_counts = Counter() # NEW
+    hourly_distribution = Counter({i: 0 for i in range(24)}) # NEW
+    daily_distribution = Counter({i: 0 for i in range(7)}) # NEW (0=Monday, 6=Sunday)
     
-    # Inner helper function for date parsing
     def parse_datetime_str(date_str, time_str):
         datetime_str = f"{date_str}, {time_str}"
         try:
@@ -77,16 +91,31 @@ def analyze_chat_data(file_content):
         sender = sender_raw.strip()
         message_content_clean = message_content.strip()
         
-        # Filter out common non-message lines
         if message_content_clean in ["<Media omitted>", "This message was deleted"]:
             continue
             
-        # Update tracking metrics
         message_counts[sender] += 1
         total_chars += len(message_content_clean)
         
+        # NEW: Link Detection
+        found_links = URL_REGEX.findall(message_content_clean)
+        total_links += len(found_links)
+
+        # NEW: Emoji Detection
+        found_emojis = EMOJI_REGEX.findall(message_content_clean)
+        for emoji_match in found_emojis:
+            # Iterate through each character in the emoji match to count individual emojis
+            for char in emoji_match:
+                emoji_counts[char] += 1
+
+        # NEW: Time-based analysis
+        message_datetime = parse_datetime_str(date_str, time_str)
+        if message_datetime:
+            hourly_distribution[message_datetime.hour] += 1
+            daily_distribution[message_datetime.weekday()] += 1 # 0=Monday, 6=Sunday
+
         parsed_messages.append({
-            "datetime": parse_datetime_str(date_str, time_str),
+            "datetime": message_datetime, # Store full datetime object for richer analysis if needed
             "sender": sender,
             "message": message_content_clean
         })
@@ -95,11 +124,24 @@ def analyze_chat_data(file_content):
     total_messages = len(parsed_messages)
     
     if not total_messages:
-        return {"totalMessages": 0, "activeUser": "N/A", "messageCount": {}, "avgMsgLength": 0.0, "error": "No recognizable messages found."}
+        return {"totalMessages": 0, "activeUser": "N/A", "messageCount": {}, "avgMsgLength": 0.0, "totalLinks": 0, "topEmojis": [], "hourlyDistribution": {}, "dailyDistribution": {}, "error": "No recognizable messages found."}
 
     avg_msg_length = total_chars / total_messages
-    top_sender_name, top_count = message_counts.most_common(1)[0]
+    
+    top_sender_name = "N/A"
+    if message_counts:
+        top_sender_name, _ = message_counts.most_common(1)[0]
+    
     sorted_message_count = dict(message_counts.most_common())
+    
+    # NEW: Top Emojis
+    top_emojis_list = [{'emoji': e, 'count': c} for e, c in emoji_counts.most_common(5)] # Top 5 emojis
+
+    # NEW: Prepare hourly/daily distributions for frontend (ensure all 24/7 are present)
+    hourly_dist_list = [{'hour': hour, 'count': hourly_distribution[hour]} for hour in sorted(hourly_distribution.keys())]
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    daily_dist_list = [{'day': day_names[day], 'count': daily_distribution[day]} for day in sorted(daily_distribution.keys())]
+
 
     return {
         "success": True,
@@ -107,6 +149,10 @@ def analyze_chat_data(file_content):
         "activeUser": top_sender_name,
         "messageCount": sorted_message_count,
         "avgMsgLength": round(avg_msg_length, 2),
+        "totalLinks": total_links, # NEW
+        "topEmojis": top_emojis_list, # NEW
+        "hourlyDistribution": hourly_dist_list, # NEW
+        "dailyDistribution": daily_dist_list, # NEW
     }
 
 # --- API Endpoints ---
