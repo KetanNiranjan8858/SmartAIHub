@@ -3,8 +3,17 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib 
 import os 
-# Import the custom recommendation function (must exist in src/movie_recommendation_logic.py)
-from movie_recommendation_logic import get_recommendation 
+import re # NEW: Needed for WhatsApp regex
+from collections import Counter # NEW: Needed for WhatsApp analysis
+from datetime import datetime # NEW: Needed for WhatsApp analysis
+
+# Import custom logic (must exist in src/movie_recommendation_logic.py)
+try:
+    from movie_recommendation_logic import get_recommendation
+except ImportError:
+    # Handle case where movie_recommendation_logic.py is not yet created
+    def get_recommendation(*args, **kwargs):
+        return []
 
 # --- Setup ---
 app = Flask(__name__)
@@ -29,21 +38,81 @@ MOVIE_TITLES = []
 try:
     # Load Spam Model
     SPAM_MODEL = joblib.load(os.path.join(BASE_DIR, 'spam_detection_model.joblib'))
-    print("✅ Spam Detection Model loaded.")
     
     # Load Movie Data
     MOVIE_DF = joblib.load(os.path.join(BASE_DIR, 'movie_df.joblib'))
     SIMILARITY_MATRIX = joblib.load(os.path.join(BASE_DIR, 'similarity_matrix.joblib'))
     MOVIE_TITLES = MOVIE_DF['title'].str.lower().tolist()
-    print("✅ Movie Recommendation Data and Titles loaded.")
+    
+    print("✅ All Models/Data loaded successfully.")
 except Exception as e:
     print(f"❌ Error loading Models/Data: {e}")
+
+# --- WHATSAPP CHAT ANALYSIS LOGIC (Integrated) ---
+
+WHATSAPP_REGEX = re.compile(
+    r'^(\d{2}/\d{2}/\d{4}),\s(\d{1,2}:\d{2}\s(?:am|pm))\s-\s([^:]+?):\s(.*)$',
+    re.MULTILINE
+)
+
+def analyze_chat_data(file_content):
+    """Parses raw chat file content and generates analytical metrics."""
+    
+    parsed_messages = []
+    message_counts = Counter()
+    total_chars = 0
+    
+    # Inner helper function for date parsing
+    def parse_datetime_str(date_str, time_str):
+        datetime_str = f"{date_str}, {time_str}"
+        try:
+            return datetime.strptime(datetime_str, '%d/%m/%Y, %I:%M %p')
+        except ValueError:
+            return None
+    
+    # --- Parsing Loop ---
+    for match in WHATSAPP_REGEX.finditer(file_content):
+        date_str, time_str, sender_raw, message_content = match.groups()
+        
+        sender = sender_raw.strip()
+        message_content_clean = message_content.strip()
+        
+        # Filter out common non-message lines
+        if message_content_clean in ["<Media omitted>", "This message was deleted"]:
+            continue
+            
+        # Update tracking metrics
+        message_counts[sender] += 1
+        total_chars += len(message_content_clean)
+        
+        parsed_messages.append({
+            "datetime": parse_datetime_str(date_str, time_str),
+            "sender": sender,
+            "message": message_content_clean
+        })
+
+    # --- Final Aggregation ---
+    total_messages = len(parsed_messages)
+    
+    if not total_messages:
+        return {"totalMessages": 0, "activeUser": "N/A", "messageCount": {}, "avgMsgLength": 0.0, "error": "No recognizable messages found."}
+
+    avg_msg_length = total_chars / total_messages
+    top_sender_name, top_count = message_counts.most_common(1)[0]
+    sorted_message_count = dict(message_counts.most_common())
+
+    return {
+        "success": True,
+        "totalMessages": total_messages,
+        "activeUser": top_sender_name,
+        "messageCount": sorted_message_count,
+        "avgMsgLength": round(avg_msg_length, 2),
+    }
 
 # --- API Endpoints ---
 
 @app.route('/')
 def index():
-    """Simple health check endpoint."""
     return "SmartAIHub Backend API is running!"
 
 # 1. Spam Detection Endpoint (Feature 1)
@@ -66,13 +135,35 @@ def check_spam():
         return jsonify({"success": False, "error": f"Prediction failed: {e}"}), 500
 
 
-# 2. WhatsApp Chat Analysis Endpoint (Feature 2 - Placeholder)
+# 2. WhatsApp Chat Analysis Endpoint (Feature 2: Integrated)
 @app.route('/api/analyze_chat', methods=['POST'])
 def analyze_chat():
-    return jsonify({
-        "success": False, 
-        "message": "Chat Analysis endpoint pending file upload and ML integration."
-    }), 200
+    """Accepts an uploaded chat file and returns core statistics."""
+    
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "No file part in the request."}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"success": False, "error": "No selected file."}), 400
+    
+    if file:
+        try:
+            # Read file content as string (assuming standard WhatsApp export encoding)
+            file_content = file.read().decode('utf-8')
+            
+            # Process the content using the integrated logic
+            analysis_results = analyze_chat_data(file_content)
+            
+            if "error" in analysis_results:
+                 return jsonify({"success": False, "error": analysis_results["error"]}), 400
+
+            return jsonify(analysis_results)
+
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Internal analysis error: {e}"}), 500
+    
+    return jsonify({"success": False, "error": "Unknown error during file upload."}), 500
 
 # 3. Auto-Suggest Search Endpoint (Movie)
 @app.route('/api/search_movies', methods=['POST'])
@@ -128,16 +219,13 @@ def predict_price():
          return jsonify({"success": False, "error": "Missing required features."}), 400
 
     try:
-        # Mock ML Logic
         sqft = float(data.get('sqft'))
         bedrooms = float(data.get('bedrooms'))
         bathrooms = float(data.get('bathrooms'))
         location = data.get('location')
 
-        # Simple calculation
+        # Mock ML Logic
         predicted_value = (sqft * 150) + (bedrooms * 20000) + (bathrooms * 15000)
-        
-        # Location adjustment
         adjustment = 1.3 if location == 'Suburb A' else (1.1 if location == 'Suburb B' else 0.9)
         final_prediction = round((predicted_value * adjustment) / 1000) * 1000
 

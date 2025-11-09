@@ -17,25 +17,50 @@ function WhatsAppChatAnalysisPage() {
     setLoading(true);
     setAnalysis(null);
 
-    // --- Mock Backend Logic (Replace with file upload API call) ---
-    await new Promise(resolve => setTimeout(resolve, 2500)); // Simulate long analysis time
-    
-    const mockData = {
-        totalMessages: 1245,
-        activeUser: "Ketan Niranjan",
-        topContact: "Mom",
-        messageCount: { "Ketan Niranjan": 780, "Mom": 350, "Work Group": 115 },
-        avgMsgLength: 12.5,
-    };
+    // --- INTEGRATION POINT: Replace Mock Backend Logic with API Call ---
+    try {
+      const formData = new FormData();
+      // Important: The key 'chat_file' must match what your Python backend expects (e.g., request.files['chat_file'])
+      formData.append('chat_file', file); 
+      
+      const response = await fetch('/api/analyze', { // <<< CHANGE THIS URL TO YOUR ACTUAL API ENDPOINT
+        method: 'POST',
+        body: formData,
+        // Note: Do not set 'Content-Type' header manually for FormData
+      });
 
-    setAnalysis(mockData);
-    setLoading(false);
-    // --- End Mock Backend Logic ---
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // The Python script returns the JSON structure required by your frontend mock
+      setAnalysis(result);
+
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      setAnalysis({ 
+          totalMessages: 0, 
+          activeUser: "ERROR", 
+          topContact: "ERROR",
+          messageCount: {}, 
+          avgMsgLength: 0.0,
+          error: String(error)
+      });
+    } finally {
+      setLoading(false);
+    }
+    // --- End API Logic ---
   };
 
   const renderAnalysis = () => {
     if (loading) {
       return <p className="analysis-loading">Processing Chat Data... This might take a moment for large files.</p>;
+    }
+    if (analysis && analysis.error) {
+        return <p className="analysis-error">Analysis Failed: {analysis.error}</p>;
     }
     if (!analysis) {
         return <p className="analysis-placeholder">Upload a WhatsApp chat file (.txt) to see your communication insights.</p>;
